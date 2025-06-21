@@ -1,48 +1,37 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>No-Copyright Web Tool</title>
-  <style>
-    body { font-family: Arial; padding: 20px; }
-    button { padding: 10px 20px; margin-top: 10px; }
-    video { max-width: 100%; margin-top: 20px; }
-  </style>
+  <meta charset="UTF-8">
+  <title>No Copyright Video Editor</title>
 </head>
 <body>
-  <h2>🎬 No-Copyright Web Tool</h2>
-  <input type="file" id="uploader" accept="video/*"><br>
-  <button onclick="processVideo()">Process Video</button>
-  <p id="status">Status: Idle</p>
-  <video id="output" controls></video>
+  <h1>Video Processor</h1>
+  <input type="file" id="inputVideo" />
+  <button onclick="processVideo()">Convert</button>
+  <br><br>
+  <video id="outputVideo" controls style="max-width: 500px;"></video>
 
-  <script src="ffmpeg.min.js"></script>
-  <script>
-    const { createFFmpeg, fetchFile } = FFmpeg;
+  <script type="module">
+    import { createFFmpeg, fetchFile } from './ffmpeg.min.js';
+
     const ffmpeg = createFFmpeg({
       log: true,
-      corePath: './ffmpeg-core.js'
+      corePath: './ffmpeg-core.js',
+      wasmPath: './ffmpeg-core.wasm',
+      workerPath: './ffmpeg-core.worker.js',
     });
 
     async function processVideo() {
-      const fileInput = document.getElementById('uploader');
-      const status = document.getElementById('status');
-      if (!fileInput.files.length) {
-        alert("कृपया पहले एक वीडियो चुनें।");
-        return;
-      }
-      const file = fileInput.files[0];
-      status.textContent = "Status: FFmpeg लोड हो रहा है...";
       await ffmpeg.load();
-      ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
-      status.textContent = "Status: प्रोसेसिंग जारी है...";
+      const input = document.getElementById('inputVideo').files[0];
+      ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(input));
       await ffmpeg.run('-i', 'input.mp4', '-vf', 'hue=s=0', 'output.mp4');
       const data = ffmpeg.FS('readFile', 'output.mp4');
-      const videoURL = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
-      document.getElementById('output').src = videoURL;
-      status.textContent = "Status: पूरा हो गया ✅";
+      const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
+      document.getElementById('outputVideo').src = url;
     }
+
+    window.processVideo = processVideo;
   </script>
 </body>
 </html>
